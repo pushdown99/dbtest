@@ -14,7 +14,7 @@ module.exports = {
   init: function() {
     db.init (process.env.DB_NAME, process.env.DB_HOSTNAME, process.env.DB_USERNAME, process.env.DB_PASSWORD, process.env.DB_DATABASE, verbose);
   },
-  getUsers: function(callback=null) {
+  getUser: function(callback=null) {
     if(db.handle() == null) this.init();
     db.query("SELECT * FROM users", function(e, r) {
       if(callback) callback (e, r);
@@ -32,7 +32,7 @@ module.exports = {
       if(callback) callback (e, r);
     });
   },
-  delUsers: function(callback=null) {
+  delUser: function(callback=null) {
     if(db.handle() == null) this.init();
     db.query("DELETE FROM users", function(e, r) {
       if(callback) callback (e, r);
@@ -50,17 +50,24 @@ module.exports = {
       if(callback) callback (e, r);
     });
   },
-  updUsers: function(email, fcmkey, callback=null) {
+  updUser: function(email, fcmkey, callback=null) {
     if(db.handle() == null) this.init();
     if(verbose) console.log(records);
     db.query("UPDATE users SET fcmkey = ? WHERE email = ?", [fcmkey, email], function (e, r) {
       if(callback) callback (e, r);
     });
   },
-  putUsers: function(records, callback=null) {
+  updUserPasswd: function(email, passwd, callback=null) {
     if(db.handle() == null) this.init();
     if(verbose) console.log(records);
-    db.query("INSERT INTO users (email, passwd, fcmkey) VALUES ?", [records], function (e, r) {
+    db.query("UPDATE users SET passwd = ? WHERE email = ?", [passwd, email], function (e, r) {
+      if(callback) callback (e, r);
+    });
+  },
+  putUser: function(records, callback=null) {
+    if(db.handle() == null) this.init();
+    if(verbose) console.log(records);
+    db.query("INSERT INTO users (email, passwd) VALUES ?", [records], function (e, r) {
       if(callback) callback (e, r);
     });
   },
@@ -83,19 +90,19 @@ module.exports = {
       if(callback) callback (e, r);
     });
   },
-  getReceipts: function(callback=null) {
+  getReceipt: function(callback=null) {
     if(db.handle() == null) this.init();
     db.query("SELECT * FROM receipt", function(e, r) {
       if(callback) callback (e, r);
     });
   },
-  getReceiptsEmailSince: function(email, since, callback=null) {
+  getReceiptEmailFrom: function(email, from, callback=null) {
     if(db.handle() == null) this.init();
-    db.query("SELECT * FROM receipt WHERE email = ? AND ts > ?", [email, since], function(e, r) {
+    db.query("SELECT * FROM receipt WHERE email = ? AND UNIX_TIMESTAMP(ts) > ?", [email, from], function(e, r) {
       if(callback) callback (e, r);
     });
   },
-  putReceipts: function(records, callback=null) {
+  putReceipt: function(records, callback=null) {
     if(db.handle() == null) this.init();
     if(verbose) console.log(records);
     db.query("INSERT INTO receipt (email, name, register, tel, address, text, pdf, total, cash, card, ts) VALUES ?", [records], function (e, r) {
@@ -107,7 +114,7 @@ module.exports = {
   //
   // QRcode
   //
-  getQRcodes: function(callback=null) {
+  getQRcode: function(callback=null) {
     if(db.handle() == null) this.init();
     db.query("SELECT * FROM qrcode", function(e, r) {
       if(callback) callback (e, r);
@@ -143,7 +150,7 @@ module.exports = {
       if(callback) callback (e, r);
     });
   },
-  putQRcodes: function(records, callback=null) {
+  putQRcode: function(records, callback=null) {
     if(db.handle() == null) this.init();
     if(verbose) console.log(records);
     db.query("INSERT INTO qrcode (email, qrcode) VALUES ?", [records], function (e, r) {
@@ -155,7 +162,7 @@ module.exports = {
   //
   // Issue
   //
-  getIssues: function(callback=null) {
+  getIssue: function(callback=null) {
     if(db.handle() == null) this.init();
     db.query("SELECT * FROM issue", function(e, r) {
       if(callback) callback (e, r);
@@ -191,14 +198,14 @@ module.exports = {
       if(callback) callback (e, r);
     });
   },
-  putIssues: function(records, callback=null) {
+  putIssue: function(records, callback=null) {
     if(db.handle() == null) this.init();
-    if(verbose) console.log(records);
     if(verbose) console.log(records);
     db.query("INSERT INTO issue (email, license) VALUES ?", [records], function (e, r) {
       if(callback) callback (e, r);
     });
   },
+
   //////////////////////////////////////////////////////////////////////////////////////////////////
   //
   // License
@@ -216,5 +223,24 @@ module.exports = {
       if(callback) callback (e, r);
     });
   },
+
+  //////////////////////////////////////////////////////////////////////////////////////////////////
+  //
+  // FCM
+  //
+  putFcm: function(records, callback=null) {
+    if(db.handle() == null) this.init();
+    if(verbose) console.log(records);
+    db.query("INSERT INTO fcm (email, name, total, issue, pdf, text, coupon) VALUES ?", [records], function (e, r) {
+      if(callback) callback (e, r);
+    });
+  },
+  getFcmId: function(id, callback=null) {
+    if(db.handle() == null) this.init();
+    db.query("SELECT * FROM fcm WHERE id = ?", [id], function(e, r) {
+      if(callback) callback (e, r);
+    });
+  },
+
 
 };

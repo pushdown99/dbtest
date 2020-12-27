@@ -4,7 +4,10 @@ const dotenv  = require('dotenv').config()
 let   verbose = process.env.VERBOSE || false
 verbose = (verbose == 'true');
 
-const moment  = require('moment-timezone');
+const moment = require('moment-timezone');
+const upload = require('express-fileupload');
+
+let popup  = require('popups');
 
 let db     = require('./libs/db.js');
 let pdf    = require('./libs/pdf.js');
@@ -14,6 +17,7 @@ let escp   = require('./libs/escp.js');
 let misc   = require('./libs/misc.js');
 let parser = require('./libs/parser.js');
 
+let ws     = require('./ws.js');
 let dbio   = require('./dbio.js');
 let file   = require('./file.js');
 
@@ -23,10 +27,71 @@ module.exports = {
   init: function(ap) {
     app = ap;
 
+    app.use(upload());
     this.middleware();
 
-    app.get('/xxx', function(req, res){
-      res.send('hello');
+    ws.init();
+
+    ///////////////////////////////////////////////////////////////
+    //
+    // LOOPBACK
+    //
+    app.get('/loopback', function(req, res){
+      res.send('loopback');
+    });
+
+    ///////////////////////////////////////////////////////////////
+    //
+    // ADMIN
+    //
+    app.get('/admin/login', function(req, res) {
+      res.render('login');
+    });
+    app.get('/admin/signup', function(req, res) {
+      res.render('signup');
+    });
+
+    ///////////////////////////////////////////////////////////////
+    //
+    // AGENT
+    //
+    app.get('/agent/setting/:mac', function(req, res) {
+      let mac  = req.params.mac;
+      res.send(mac);
+    });
+    app.get('/popup', function(req, res) {
+      res.send("hello");
+    });
+
+    ///////////////////////////////////////////////////////////////
+    //
+    // UPLOAD
+    //
+    app.get('/upload', function(req, res) {
+      res.render('upload');
+    });
+    app.post('/upload', function(req, res) {
+      let sampleFile;
+      let uploadPath;
+
+      if (!req.files || Object.keys(req.files).length === 0) {
+        res.status(400).send('No files were uploaded.');
+        return;
+      }
+
+      console.log('req.files >>>', req.files); // eslint-disable-line
+
+      sampleFile = req.files.sampleFile;
+
+      uploadPath = __dirname + '/uploads/' + sampleFile.name;
+
+      sampleFile.mv(uploadPath, function(err) {
+        if (err) {
+          return res.status(500).send(err);
+        }
+
+        res.send('File uploaded to ' + uploadPath);
+      });
     });
 
     ///////////////////////////////////////////////////////////////
@@ -39,18 +104,27 @@ module.exports = {
       var fcmkey = req.body.key;
       var result = { code: 200, message: "OK" }
 
+      if(email == undefined || passwd == undefined || fcmkey == undefined) {
+        return misc.response({ code: 400, message: "Bad Request!" }, req, res);
+      }
+
       dbio.getUserEmail (email, function (e, r) {
-        if (e) console.log(e.code); // console.log(err.fatal);
-        if(r[0].passwd != passwd) {
+        if (e) {
+          console.log(e.code);
+          return misc.response({ code: 500, message: "Internal DB error!" }, req, res);
+        }
+        console.log(r);
+        if(r.length < 1 || r[0].passwd != passwd) {
           misc.response({ code: 204, message: "User/ Password not found!" }, req, res);
         }
         else {
-          dbio.updUsers(email, fcmkey, function (e, r) {
-            if (e) console.log(e.code); // console.log(err.fatal);
-            if (r.affectedRows == 0) 
-              misc.response({ code: 500, message: "Internal DB error!" }, req, res);
+          dbio.updUser(email, fcmkey, function (e, r) {
+            if (e || r.affectedRows == 0) {
+              console.log(e.code);
+              return misc.response({ code: 500, message: "Internal DB error!" }, req, res);
+            }
             else 
-              misc.response(result, req, res);
+              return misc.response(result, req, res);
           });
         }
       });
@@ -58,62 +132,130 @@ module.exports = {
 
     app.post('/sign-up/', function(req, res) {
       var email  = req.body.id;
-      var pwd    = req.body.pwd;
-      var records = [[ email, pwd ]];
+      var passwd = req.body.pwd;
+      var records = [[ email, passwd ]];
       var result  = { code: 200, message: "OK" }
 
-      dbio.putUsers(records, function (e, r) {
-        if (e) console.log(e.code); // console.log(err.fatal);
+      dbio.putUser(records, function (e, r) {
+        if (e || r.length <= 1) {
+          console.log(e.code); // console.log(err.fatal);
+          misc.response({ code: 500, message: "Internal DB error!" }, req, res);
+        }
+        else 
+          misc.response(result, req, res);
       });
-      misc.response(result, req, res);
+    });
+
+    ////////////////////////////////////////////////////////////////////////////////////////
+    //
+    // PASSWORD
+    //
+    app.post('/password/:email', function(req, res) {
+      let email  = req.params.email;
+      var passwd = req.body.pwd;
+      var records = [[ email, passwd ]];
+      var result  = { code: 200, message: "OK" }
+
+      dbio.updUserPasswd(records, function (e, r) {
+        if (e || r.affectedRows == 0) {
+          if (e) console.log(e.code); // console.log(err.fatal);
+          misc.response({ code: 500, message: "Internal DB error!" }, req, res);
+        }
+        else
+          misc.response(result, req, res);
+      });
+    });
+
+    ////////////////////////////////////////////////////////////////////////////////////////
+    //
+    // FCM
+    //
+    app.get('/fcm/:id', (req, res) => {
+      let id = req.params.id;
+      dbio.getFcmId(id, function(e, r) {
+        if (e || r.length < 1) {
+          if (e) console.log(e.code); // console.log(err.fatal);
+          misc.response({ code: 404, message: "Not found!" }, req, res);
+        }
+        else {
+          res.contentType("application/json")
+          res.send(JSON.stringify(r));
+        }
+      });
     });
 
     ////////////////////////////////////////////////////////////////////////////////////////
     //
     // Receipt
     //
-    app.get('/receipts', (req, res) => {
-      dbio.getReceipts( function(e, r) {
-        res.send(r);
+    app.get('/receipt', (req, res) => {
+      dbio.getReceipt( function(e, r) {
+        res.contentType("application/json")
+        res.send(JSON.stringify(r));
       });
     });
 
-    app.get('/receipt/email/:id', (req, res) => {
-      dbio.getReceiptEmail(req.params.id, function(e, r) {
-        res.send(r);
+    app.get('/receipt/:email', (req, res) => {
+      let email = req.params.email;
+      dbio.getReceiptEmail(email, function(e, r) {
+        res.contentType("application/json")
+        res.send(JSON.stringify(r));
       });
     });
-    app.get('/receipt/since/:email/:since', (req, res) => {
+    app.get('/receipt/:email/:from', (req, res) => {
       let email = req.params.email;
-      let since = req.params.since;
-      dbio.getReceiptsEmailSince(email, since, function(e, r) {
+      let from  = req.params.from;
+      dbio.getReceiptEmailFrom(email, from, function(e, r) {
+        res.contentType("application/json")
         res.send(r);
       });
     });
 
     app.post('/receipt/:license', (req, res) => {
       let license = req.params.license;
-      let data = escp.parse(req.body.Data);
+      let data    = escp.parse(req.body.Data);
 
       pdf.write(data, null, function(name, path_pdf) {
         txt.write(data, name, function(name, path_txt) {
           dbio.getIssueLicense(license, function (e, r) {
-            console.log(r);
-            dbio.getUserEmail(r[0].email, function (e, r) {
-              console.log(r);
-              fcm.message(process.env.KEY_FCM, r[0].fcmkey, 'https://tric.kr/' + path_pdf);
-            });
-          });
-          parser.open(data, function(obj) {
-            var records = [[ 'haeyun@gmail.com', obj.name, obj.register, obj.tel, obj.address, path_txt, path_pdf, misc.toint(obj.total), misc.toint(obj.cash), misc.toint(obj.card), obj.date ]];
-            dbio.putReceipts(records, function (e, r) {
-              if (e) console.log(e.code); // console.log(err.fatal);
-            });
+            if(e || r.length < 1) {
+              if (e) console.log(e.code);
+              misc.response({ code: 500, message: "Internal DB error!" }, req, res);
+            }
+            else {
+              let email = r[0].email;
+              dbio.getUserEmail(email, function (e, r) {
+                // fcm.message(process.env.KEY_FCM, r[0].fcmkey, process.env.SERVER + '/' + path_pdf);
+                let fcmkey = r[0].fcmkey;
+
+                parser.open(data, function(obj) {
+                  var records = [[ email, obj.name, obj.register, obj.tel, obj.address,  process.env.SERVER + '/' + path_txt,  process.env.SERVER + '/' + path_pdf, misc.toint(obj.total), misc.toint(obj.cash), misc.toint(obj.card), obj.date ]];
+  
+                  dbio.putReceipt(records, function (e, r) {
+                    if (e || r.length < 1) {
+                      if (e) console.log(e.code); // console.log(err.fatal);
+                      else misc.response({ code: 501, message: "Internal DB error!" }, req, res);
+                    }
+                    else {
+                      var records = [[ email, obj.name, misc.toint(obj.total), obj.date, process.env.SERVER + '/' + path_pdf, process.env.SERVER + '/' + path_txt, '' ]];
+                      dbio.putFcm (records, function(e, r) {
+                        if (e || r.length < 1) {
+                          if (e) console.log(e.code);
+                          misc.response({ code: 502, message: "Internal DB error!" }, req, res);
+                        }
+                        else {
+                          fcm.message(process.env.KEY_FCM, fcmkey, process.env.SERVER + '/fcm/' + r.insertId);
+                          misc.response({ code: 200, message: "OK" }, req, res);
+                        }
+                      });
+                    }
+                  });
+                });
+              });
+            }
           });
         });
       });
-      var result = { code: 200, message: "OK", }
-      res.send(result);
     });
 
     app.get('/pdf/:f', (req, res) => {
@@ -124,35 +266,67 @@ module.exports = {
     //
     // QRcode & Issue
     //
+    app.get('/qrcode', function(req, res){
+      dbio.getQRcode(function (e, r) {
+        res.send(r);
+      });
+    });
     app.get('/qrcode/:email', function(req, res){
       var email   = req.params.email;
-      let gen     = misc.generate();
+      let gen     = misc.generateQRcode();
       var result  = { code: 200, message: "OK", id: email, qrcode: gen, }
       var records = [[email, gen]];
 
       dbio.delQRcodeEmail (email);
       dbio.delIssueEmail  (email);
-      dbio.putQRcodes(records, function (e, r) {
-        if (e) console.log(e.code);
+      dbio.putQRcode(records, function (e, r) {
+        if (e) {
+          console.log(e.code);
+          misc.response({ code: 500, message: "Internal DB error!" }, req, res);
+        }
+        else
+          misc.response(result, req, res);
+
       });
-      misc.response(result, req, res);
     });
 
+    app.get('/issue', function(req, res){
+      var result  = { code: 200, message: "OK" }
+      dbio.getIssue(function (e, r) {
+        if (e) {
+          console.log(e.code);
+          misc.response({ code: 500, message: "Internal DB error!" }, req, res);
+        }
+        else 
+          misc.response(result, req, res);
+      });
+    });
     app.get('/issue/:license/:qrcode', function(req, res){
       var license = req.params.license;
       var qrcode  = req.params.qrcode;
       var result  = { code: 200, message: "OK" }
 
-      console.log(qrcode);
+      ws.send(qrcode);
+
       dbio.getQRcodeQRcode(qrcode, function (e, r) {
-        console.log(r);
-        if (e && verbose) console.log(r);
-        var records = [[r[0].email, license]];
-        //dbio.delQRcodeQRcode(qrcode);
-        dbio.delIssueLicense(license);
-        dbio.putIssues(records);
+        if(e || r.length < 1) {
+          if(e) console.log(e.code);
+          misc.response({ code: 404, message: "Not found!" }, req, res);
+        }
+        else {
+          var records = [[r[0].email, license]];
+          //dbio.delQRcodeQRcode(qrcode);
+          dbio.delIssueLicense(license);
+          dbio.putIssue(records, function(e, r) {
+            if(e) {
+              console.log(e.code);
+              misc.response({ code: 500, message: "Internal DB error!" }, req, res);
+            }
+            else 
+              misc.response(result, req, res);
+          });
+        }
       });
-      misc.response(result, req, res);
     });
 
     ////////////////////////////////////////////////////////////////////////////////////////
@@ -176,9 +350,26 @@ module.exports = {
     //
     // QR scanner 
     //
+    app.get('/qrscan', function(req, res){
+      var license = 1234
+      res.render('qrscan', {license: license});
+    });
+
     app.get('/qrscan/:license', function(req, res){
       var license = req.params.license;
       res.render('qrscan', {license: license});
+    });
+
+    ////////////////////////////////////////////////////////////////////////////////////////
+    //
+    // QR generator 
+    //
+    app.get('/qrgen/:text', function(req, res){
+      var text = req.params.text;
+      misc.qrcode(text, function(e, d) {
+        //file.downloadPng (d);
+        res.send ('<img src="' + d + '"/>');
+      });
     });
   },
 

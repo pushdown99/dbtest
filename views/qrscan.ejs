@@ -5,6 +5,7 @@
   <script src="/js/jsQR.js"></script>
   <script src="https://code.jquery.com/jquery-3.5.1.min.js"></script>
   <link href="https://fonts.googleapis.com/css?family=Ropa+Sans" rel="stylesheet">
+  <link rel="icon" type="image/png" sizes="16x16" href="/favicon.ico">
   <style>
     body {
       font-family: 'Ropa Sans', sans-serif;
@@ -62,6 +63,7 @@
     <div hidden><b>Data:</b> <span id="outputData"></span></div>
   </div>
   <script>
+  $(document).ready(function() {
     var video           = document.createElement("video");
     var canvasElement   = document.getElementById("canvas");
     var canvas          = canvasElement.getContext("2d");
@@ -140,6 +142,8 @@
           console.log(license, code.data);
 
           $.getJSON( "/issue/" + license + "/" + code.data, function( data ) {
+            var audio = new Audio('/data/speech.mp3');
+            audio.play();
           });
           code = null;
           wait(1000);
@@ -150,6 +154,7 @@
       }
       requestAnimationFrame(tick);
     }
+  });
   </script>
 </body>
 </html>

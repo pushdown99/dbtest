@@ -12,7 +12,7 @@ module.exports = {
 
     fs.exists(p, (exists) => {
       if(exists) {
-      console.log(exists ? 'Found' : 'Not Found!');
+        //console.log(exists ? 'Found' : 'Not Found!');
         var data =fs.readFileSync(p);
         res.contentType("application/pdf");
         res.send(data);
@@ -24,5 +24,9 @@ module.exports = {
       }
     });
   },
+  downloadPng: function(d, req, res) {
+    res.contentType("image/png");
+    res.send(d);
+  }
 }
 

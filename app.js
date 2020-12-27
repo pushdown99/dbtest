@@ -1,5 +1,5 @@
-let dotenv  = require('dotenv').config();
-let fs      = require('fs');
+//let dotenv  = require('dotenv').config();
+let misc    = require('./libs/misc.js');
 let https   = require('./libs/https.js');
 let router  = require('./router.js');
 let envfile = require('envfile')
@@ -21,10 +21,10 @@ app.use(express.static(__dirname + '/public'));
 //fs.writeFileSync('./.t', envfile.stringify(dotenv.parsed)); 
 router.init(app);
 
-//let expire = process.env.EXPIRE;
-//timer.interval(1, function() {
-//  dbio.delQrcodeExpire (expire);
-//});
+misc.exists('./.env', function(exists) {
+  if(!exists) console.log("Environment file (.env) not found");
+});
+
 
 https.listen (app);
 
