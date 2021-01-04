@@ -1,6 +1,6 @@
 'use strict';
 
-const mysql = require('mysql');
+const mysql = require('sync-mysql');
 
 let connection  = null;
 let database    = "";
@@ -11,26 +11,22 @@ let db_database = "";
 let verbose     = false;
 
 module.exports = {
-  init: function(n, h, u, p, d, v) { database = n; db_host = h; db_user = u; db_password = p; db_database = d; verbose = v; },
-  handle: function() { return connection; },
-  locale: function(database) {
-    switch(database) {
-    case 'mysql':
-      if(connection) this.query("set time_zone='+9:00'");
-    }
+  init: function(n, h, u, p, d, v) { 
+    database    = n; 
+    db_host     = h; 
+    db_user     = u; 
+    db_password = p; 
+    db_database = d; 
+    verbose     = v; 
+    console.log('db.init', database, db_host, db_user, db_password, db_database, verbose);
   },
-  connect: function(callback = null) {
-    let opts = { host:db_host, user:db_user, password:db_password, database:db_database, }; 
-
+  handle: function () { return connection; },
+  connect: function() { 
     switch(database) {
     case 'mysql':
-      let mysql     = require('mysql');
-      connection = mysql.createConnection(opts);
-      connection.connect(function(e) {
-        if(e && verbose) console.log("MySQL Error: " + e);
-        if(callback) callback(e);
-      });
-      this.locale();
+      connection  = new mysql({ host:db_host, user:db_user, password:db_password, database:db_database });
+      console.log ('connect', connection);
+      this.query("set time_zone='+9:00'");
       break;
 
     case 'pg':
@@ -52,27 +48,46 @@ module.exports = {
       break;
     }
   },
-  query: function(sql, records=null, callback=null) {
-    if(connection == null) this.connect();
+  query: function(s, v=null) {
+    if(connection == null) this.connect ();
+    console.log('db: ', s, v);
     switch(database) {
     case 'mysql':
-      connection.query(sql, records, function(e, res, f) {
-        if(callback) {
-          if(e && verbose) console.log (res);
-          callback(e, res);
-        }
-      });
+      if(v == null) {
+        return connection.query(s);
+      }
+      else {
+        return connection.query(s, v);
+      }
       break;
     case 'pg':
-      connection.query(sql, (e, res) => {
-        if(callback) callback(e, res.rows);
-      });
       break;
     }
   },
-  close: function(callback) {
-      connection.end(function(e) {
-          if(callback) callback(e);
-      });
+  queuequery: function(s, v=null) {
+    return connection.queueQuery (s, v);
+  },
+  update: function(s, v=null) {
+    return connection.update (s, v);
+  },
+  queueupdate: function(s, v=null) {
+    return connection.queueUpdate (s, v);
+  },
+  getrecord: function(t, id) {
+    return connection.getRecord(t, id);
+  },
+  call: function(name, args) {
+    return connection.call(n, args);
+  },
+  queuecall: function(name, args) {
+    return connection.queueCall(n, args);
+  },
+  dispose: function() {
+    return connection.dispose();
+  },
+  finishall: function() {
+    return connection.finishAll();
+  },
+  close: function() {
   }
 };

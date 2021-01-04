@@ -9,7 +9,6 @@ module.exports = {
 
     wss.on('connection', function connection(ws) {
       clients.push(ws);
-      ws.send('hi');
 
       ws.on('open', function open() {
         console.log('open');

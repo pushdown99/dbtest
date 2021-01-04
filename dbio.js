@@ -12,235 +12,225 @@ var db = require('./libs/db.js');
 
 module.exports = {
   init: function() {
+    console.log('dbio.init');
     db.init (process.env.DB_NAME, process.env.DB_HOSTNAME, process.env.DB_USERNAME, process.env.DB_PASSWORD, process.env.DB_DATABASE, verbose);
   },
-  getUser: function(callback=null) {
-    if(db.handle() == null) this.init();
-    db.query("SELECT * FROM users", function(e, r) {
-      if(callback) callback (e, r);
-    });
+  getUser: function() {
+    if(db.handle() == null) this.init ();
+    return db.query("SELECT * FROM users");
   },
-  getUserId: function(id, callback=null) {
-    if(db.handle() == null) this.init();
-    db.query("SELECT * FROM users WHERE id = ?", [id], function(e, r) {
-      if(callback) callback (e, r);
-    });
+  getUserId: function(record) {
+    if(db.handle() == null) this.init ();
+    return db.query("SELECT * FROM users WHERE id = ?", record);
   },
-  getUserEmail: function(email, callback=null) {
-    if(db.handle() == null) this.init();
-    db.query("SELECT * FROM users WHERE email = ?", [email], function(e, r) {
-      if(callback) callback (e, r);
-    });
+  getUserEmail: function(record) {
+    if(db.handle() == null) this.init ();
+    return db.query("SELECT * FROM users WHERE email = ?", record);
   },
-  delUser: function(callback=null) {
-    if(db.handle() == null) this.init();
-    db.query("DELETE FROM users", function(e, r) {
-      if(callback) callback (e, r);
-    });
+  getUserEmailPass: function(record) {
+    if(db.handle() == null) this.init ();
+    return db.query("SELECT * FROM users WHERE email = ? AND passwd = ?", record);
   },
-  delUserId: function(id, callback=null) {
-    if(db.handle() == null) this.init();
-    db.query("DELETE FROM users WHERE id = ?", [id], function(e, r) {
-      if(callback) callback (e, r);
-    });
+  delUser: function() {
+    if(db.handle() == null) this.init ();
+    return db.query("DELETE FROM users");
   },
-  delUserEmail: function(email, callback=null) {
-    if(db.handle() == null) this.init();
-    db.query("DELETE FROM users WHERE email = ?", [email], function(e, r) {
-      if(callback) callback (e, r);
-    });
+  delUserId: function(record) {
+    if(db.handle() == null) this.init ();
+    return db.query("DELETE FROM users WHERE id = ?", record);
   },
-  updUser: function(email, fcmkey, callback=null) {
-    if(db.handle() == null) this.init();
-    if(verbose) console.log(records);
-    db.query("UPDATE users SET fcmkey = ? WHERE email = ?", [fcmkey, email], function (e, r) {
-      if(callback) callback (e, r);
-    });
+  delUserEmail: function(record) {
+    if(db.handle() == null) this.init ();
+    return db.query("DELETE FROM users WHERE email = ?", record);
   },
-  updUserPasswd: function(email, passwd, callback=null) {
-    if(db.handle() == null) this.init();
-    if(verbose) console.log(records);
-    db.query("UPDATE users SET passwd = ? WHERE email = ?", [passwd, email], function (e, r) {
-      if(callback) callback (e, r);
-    });
+  updUser: function(record) {
+    if(db.handle() == null) this.init ();
+    return db.query("UPDATE users SET fcmkey = ? WHERE email = ?", record);
   },
-  putUser: function(records, callback=null) {
-    if(db.handle() == null) this.init();
-    if(verbose) console.log(records);
-    db.query("INSERT INTO users (email, passwd) VALUES ?", [records], function (e, r) {
-      if(callback) callback (e, r);
-    });
+  updUserPasswd: function(record) {
+    if(db.handle() == null) this.init ();
+    return db.query("UPDATE users SET passwd = ? WHERE email = ?", record);
+  },
+  putUser: function(record) {
+    if(db.handle() == null) this.init ();
+    return db.query("INSERT INTO users (email, passwd) VALUES (?, ?)", record);
   },
 
-  getReceiptId: function(id, callback=null) {
-    if(db.handle() == null) this.init();
-    db.query("SELECT * FROM receipt WHERE id = ?", [id], function(e, r) {
-      if(callback) callback (e, r);
-    });
+  getReceiptId: function(record) {
+    if(db.handle() == null) this.init ();
+    return db.query("SELECT * FROM receipt WHERE id = ?", record);
   },
-  getReceiptEmail: function(email, callback=null) {
-    if(db.handle() == null) this.init();
-    db.query("SELECT * FROM receipt WHERE email = ?", [email], function(e, r) {
-      if(callback) callback (e, r);
-    });
+  getReceiptEmail: function(record) {
+    if(db.handle() == null) this.init ();
+    return db.query("SELECT * FROM receipt WHERE email = ?", record);
   },
-  getReceiptIdEmail: function(id, email, callback=null) {
-    if(db.handle() == null) this.init();
-    db.query("SELECT * FROM receipt WHERE id > ? AND email = ?", [id, email], function(e, r) {
-      if(callback) callback (e, r);
-    });
+  getReceiptIdEmail: function(record) {
+    if(db.handle() == null) this.init ();
+    return db.query("SELECT * FROM receipt WHERE id > ? AND email = ?", record);
   },
-  getReceipt: function(callback=null) {
-    if(db.handle() == null) this.init();
-    db.query("SELECT * FROM receipt", function(e, r) {
-      if(callback) callback (e, r);
-    });
+  getReceipt: function() {
+    console.log('getReceipt');
+    if(db.handle() == null) this.init ();
+    return db.query("SELECT * FROM receipt");
   },
-  getReceiptEmailFrom: function(email, from, callback=null) {
-    if(db.handle() == null) this.init();
-    db.query("SELECT * FROM receipt WHERE email = ? AND UNIX_TIMESTAMP(ts) > ?", [email, from], function(e, r) {
-      if(callback) callback (e, r);
-    });
+  getReceiptEmailFrom: function(record) {
+    if(db.handle() == null) this.init ();
+    return db.query("SELECT * FROM receipt WHERE email = ? AND UNIX_TIMESTAMP(ts) > ?", record);
   },
-  putReceipt: function(records, callback=null) {
-    if(db.handle() == null) this.init();
-    if(verbose) console.log(records);
-    db.query("INSERT INTO receipt (email, name, register, tel, address, text, pdf, total, cash, card, ts) VALUES ?", [records], function (e, r) {
-      if(callback) callback (e, r);
-    });
+  putReceipt: function(record) {
+    if(db.handle() == null) this.init ();
+    return db.query("INSERT INTO receipt (email, name, register, tel, address, text, pdf, total, cash, card, ts) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", record);
   },
 
   //////////////////////////////////////////////////////////////////////////////////////////////////
   //
   // QRcode
   //
-  getQRcode: function(callback=null) {
-    if(db.handle() == null) this.init();
-    db.query("SELECT * FROM qrcode", function(e, r) {
-      if(callback) callback (e, r);
-    });
+  getQRcode: function() {
+    if(db.handle() == null) this.init ();
+    return db.query("SELECT * FROM qrcode");
   },
-  getQRcodeEmail: function(email, callback=null) {
-    if(db.handle() == null) this.init();
-    db.query("SELECT * FROM qrcode WHERE email = ?", [email], function(e, r) {
-      if(callback) callback (e, r);
-    });
+  getQRcodeEmail: function(record) {
+    if(db.handle() == null) this.init ();
+    return db.query("SELECT * FROM qrcode WHERE email = ?", record);
   },
-  getQRcodeQRcode: function(qrcode, callback=null) {
-    if(db.handle() == null) this.init();
-    db.query("SELECT * FROM qrcode WHERE qrcode = ?", [qrcode], function(e, r) {
-      if(callback) callback (e, r);
-    });
+  getQRcodeQRcode: function(record) {
+    if(db.handle() == null) this.init ();
+    return db.query("SELECT * FROM qrcode WHERE qrcode = ?", record);
   },
-  delQRcodeEmail: function(email, callback=null) {
-    if(db.handle() == null) this.init();
-    db.query("DELETE FROM qrcode WHERE email = ?", email, function(e, r) {
-      if(callback) callback (e, r);
-    });
+  delQRcodeEmail: function(record) {
+    if(db.handle() == null) this.init ();
+    return db.query("DELETE FROM qrcode WHERE email = ?", record);
   },
-  delQRcodeQRcode: function(qrcode, callback=null) {
-    if(db.handle() == null) this.init();
-    db.query("DELETE FROM qrcode WHERE qrcode = ?", qrcode, function(e, r) {
-      if(callback) callback (e, r);
-    });
+  delQRcodeQRcode: function(record) {
+    if(db.handle() == null) this.init ();
+    return db.query("DELETE FROM qrcode WHERE qrcode = ?", record);
   },
-  delQRcodeExpire: function(expire, callback=null) {
-    if(db.handle() == null) this.init();
-    db.query("DELETE FROM qrcode WHERE ts < NOW() - INTERVAL ? SECOND", expire, function(e, r) {
-      if(callback) callback (e, r);
-    });
+  delQRcodeExpire: function(record) {
+    if(db.handle() == null) this.init ();
+    return db.query("DELETE FROM qrcode WHERE ts < NOW() - INTERVAL ? SECOND", record);
   },
-  putQRcode: function(records, callback=null) {
-    if(db.handle() == null) this.init();
-    if(verbose) console.log(records);
-    db.query("INSERT INTO qrcode (email, qrcode) VALUES ?", [records], function (e, r) {
-      if(callback) callback (e, r);
-    });
+  putQRcode: function(record) {
+    if(db.handle() == null) this.init ();
+    return db.query("INSERT INTO qrcode (email, qrcode) VALUES (?, ?)", record);
   },
 
   //////////////////////////////////////////////////////////////////////////////////////////////////
   //
   // Issue
   //
-  getIssue: function(callback=null) {
-    if(db.handle() == null) this.init();
-    db.query("SELECT * FROM issue", function(e, r) {
-      if(callback) callback (e, r);
-    });
+  getIssue: function() {
+    if(db.handle() == null) this.init ();
+    return db.query("SELECT * FROM issue", record);
   },
-  getIssueEmail: function(email, callback=null) {
-    if(db.handle() == null) this.init();
-    db.query("SELECT * FROM issue WHERE email = ?", [email], function(e, r) {
-      if(callback) callback (e, r);
-    });
+  getIssueEmail: function(record) {
+    if(db.handle() == null) this.init ();
+    return db.query("SELECT * FROM issue WHERE email = ?", record);
   },
-  getIssueLicense: function(license, callback=null) {
-    if(db.handle() == null) this.init();
-    db.query("SELECT * FROM issue WHERE license = ?", [license], function(e, r) {
-      if(callback) callback (e, r);
-    });
+  getIssueLicense: function(record) {
+    if(db.handle() == null) this.init ();
+    return db.query("SELECT * FROM issue WHERE license = ?", record);
   },
-  delIssueEmail: function(email, callback=null) {
-    if(db.handle() == null) this.init();
-    db.query("DELETE FROM issue WHERE email = ?", email, function(e, r) {
-      if(callback) callback (e, r);
-    });
+  delIssueEmail: function(record) {
+    if(db.handle() == null) this.init ();
+    return db.query("DELETE FROM issue WHERE email = ?", record);
   },
-  delIssueLicense: function(license, callback=null) {
-    if(db.handle() == null) this.init();
-    db.query("DELETE FROM issue WHERE license = ?", license, function(e, r) {
-      if(callback) callback (e, r);
-    });
+  delIssueLicense: function(record) {
+    if(db.handle() == null) this.init ();
+    return db.query("DELETE FROM issue WHERE license = ?", record);
   },
-  delIssueExpire: function(expire, callback=null) {
-    if(db.handle() == null) this.init();
-    db.query("DELETE FROM issue WHERE ts < NOW() - INTERVAL ? SECOND", expire, function(e, r) {
-      if(callback) callback (e, r);
-    });
+  delIssueExpire: function(record) {
+    if(db.handle() == null) this.init ();
+    return db.query("DELETE FROM issue WHERE ts < NOW() - INTERVAL ? SECOND", record);
   },
-  putIssue: function(records, callback=null) {
-    if(db.handle() == null) this.init();
-    if(verbose) console.log(records);
-    db.query("INSERT INTO issue (email, license) VALUES ?", [records], function (e, r) {
-      if(callback) callback (e, r);
-    });
+  putIssue: function(record) {
+    if(db.handle() == null) this.init ();
+    return db.query("INSERT INTO issue (email, license) VALUES (?, ?)", record);
+  },
+
+  //////////////////////////////////////////////////////////////////////////////////////////////////
+  //
+  // Store
+  //
+
+  getStoreLicense: function (record) {
+    if(db.handle() == null) this.init ();
+    return db.query("SELECT * FROM store WHERE license = ?", record);
+  },
+
+  //////////////////////////////////////////////////////////////////////////////////////////////////
+  //
+  // g Coupon
+  //
+  getGroupCoupon: function () {
+    if(db.handle() == null) this.init ();
+    return db.query("SELECT * FROM g_coupon");
+  },
+
+  getGroupCouponRegister: function (record) {
+    if(db.handle() == null) this.init ();
+    return db.query("SELECT * FROM g_coupon WHERE register = ?", record);
+  },
+
+  //////////////////////////////////////////////////////////////////////////////////////////////////
+  //
+  //  Coupon
+  //
+  getCoupon: function (record) {
+    if(db.handle() == null) this.init ();
+    return db.query("SELECT * FROM coupon", record);
+  },
+
+  getCouponId: function (record) {
+    if(db.handle() == null) this.init ();
+    return db.query("SELECT * FROM coupon WHERE id = ?", record);
+  },
+
+  getCouponEmail: function (record) {
+    if(db.handle() == null) this.init ();
+    return db.query("SELECT * FROM coupon WHERE email = ?", record);
+  },
+
+  getCouponCode: function (record) {
+    if(db.handle() == null) this.init ();
+    return db.query("SELECT * FROM coupon WHERE cpcode = ?", record);
+  },
+
+  updCouponCodeUsed: function (record) {
+    if(db.handle() == null) this.init ();
+    return db.query("UPDATE coupon SET used = 1 WHERE cpcode = ?", record);
+  },
+
+  putCoupon: function (record) {
+    if(db.handle() == null) this.init ();
+    return db.query("INSERT INTO coupon (email, cpcode, used, g_coupon_id, name, register, title, genre, begins, ends) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", record);
   },
 
   //////////////////////////////////////////////////////////////////////////////////////////////////
   //
   // License
   //
-  delLicenseMac: function(mac, callback=null) {
-    if(db.handle() == null) this.init();
-    db.query("DELETE FROM license WHERE mac = ?", mac, function(e, r) {
-      if(callback) callback (e, r);
-    });
+  delLicenseMac: function(record) {
+    if(db.handle() == null) this.init ();
+    return db.query("DELETE FROM license WHERE mac = ?", record);
   },
-  putLicenses: function(records, callback=null) {
-    if(db.handle() == null) this.init();
-    if(verbose) console.log(records);
-    db.query("INSERT INTO license (mac, license) VALUES ?", [records], function (e, r) {
-      if(callback) callback (e, r);
-    });
+  putLicenses: function(records) {
+    if(db.handle() == null) this.init ();
+    return db.query("INSERT INTO license (mac, license) VALUES (?, ?)", record);
   },
 
   //////////////////////////////////////////////////////////////////////////////////////////////////
   //
   // FCM
   //
-  putFcm: function(records, callback=null) {
-    if(db.handle() == null) this.init();
+  putFcm: function(record) {
+    if(db.handle() == null) this.init ();
     if(verbose) console.log(records);
-    db.query("INSERT INTO fcm (email, name, total, issue, pdf, text, coupon) VALUES ?", [records], function (e, r) {
-      if(callback) callback (e, r);
-    });
+    return db.query("INSERT INTO fcm (email, name, total, issue, pdf, text, coupon) VALUES (?, ?, ?, ?, ?, ? ,?)", record);
   },
-  getFcmId: function(id, callback=null) {
-    if(db.handle() == null) this.init();
-    db.query("SELECT * FROM fcm WHERE id = ?", [id], function(e, r) {
-      if(callback) callback (e, r);
-    });
+  getFcmId: function(record) {
+    if(db.handle() == null) this.init ();
+    return db.query("SELECT * FROM fcm WHERE id = ?", record);
   },
-
 
 };
